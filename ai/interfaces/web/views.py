@@ -25,6 +25,9 @@ from catalog.models import Product
 from tenants.domain.tenant_context import TenantContext
 from tenants.interfaces.web.decorators import tenant_access_required
 
+from django.contrib.auth.decorators import login_required
+from tenants.interfaces.web.decorators import tenant_access_required
+
 
 AI_WEB_RATE_LIMIT = 10
 AI_WEB_RATE_PERIOD_SECONDS = 60
@@ -57,9 +60,12 @@ def _allow_ai_request(store_id: int, feature: str) -> bool:
 
 @tenant_access_required
 @require_GET
+@login_required
 def ai_tools(request: HttpRequest) -> HttpResponse:
     tenant_ctx = _build_tenant_context(request)
     products = Product.objects.filter(store_id=tenant_ctx.tenant_id).order_by("-id")[:50]
+    if not request.user.is_authenticated:
+        return redirect("/auth/?next=/dashboard/ai/tools")
     return render(request, "dashboard/ai/tools.html", {"products": products})
 
 
@@ -69,14 +75,14 @@ def ai_generate_description(request: HttpRequest, product_id: int) -> HttpRespon
     tenant_ctx = _build_tenant_context(request)
     if not _allow_ai_request(tenant_ctx.tenant_id, "description"):
         messages.error(request, _("AI rate limit exceeded. Please try again shortly."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
 
     action = (request.POST.get("action") or "generate").strip().lower()
     language = (request.POST.get("language") or "ar").strip().lower() or "ar"
     product = Product.objects.filter(id=product_id, store_id=tenant_ctx.tenant_id).first()
     if not product:
         messages.error(request, _("Product not found."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
 
     if action == "save":
         description = request.POST.get("description") or ""
@@ -97,7 +103,7 @@ def ai_generate_description(request: HttpRequest, product_id: int) -> HttpRespon
             messages.warning(request, _("Existing description found. Enable overwrite to replace it."))
         else:
             messages.success(request, _("Description saved."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
 
     result = GenerateProductDescriptionUseCase.execute(
         GenerateProductDescriptionCommand(
@@ -109,7 +115,7 @@ def ai_generate_description(request: HttpRequest, product_id: int) -> HttpRespon
     )
     if result.fallback_reason == "content_blocked":
         messages.error(request, _("Content blocked by safety rules."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
     existing_description = product.description_en if language == "en" else product.description_ar
     return render(
         request,
@@ -121,21 +127,19 @@ def ai_generate_description(request: HttpRequest, product_id: int) -> HttpRespon
             "has_existing_description": bool(existing_description),
         },
     )
-
-
 @tenant_access_required
 @require_POST
 def ai_categorize_product(request: HttpRequest, product_id: int) -> HttpResponse:
     tenant_ctx = _build_tenant_context(request)
     if not _allow_ai_request(tenant_ctx.tenant_id, "category"):
         messages.error(request, _("AI rate limit exceeded. Please try again shortly."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
 
     action = (request.POST.get("action") or "suggest").strip().lower()
     product = Product.objects.filter(id=product_id, store_id=tenant_ctx.tenant_id).first()
     if not product:
         messages.error(request, _("Product not found."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
 
     if action == "apply":
         category_id = int(request.POST.get("category_id") or 0)
@@ -151,7 +155,7 @@ def ai_categorize_product(request: HttpRequest, product_id: int) -> HttpResponse
             messages.success(request, _("Category applied."))
         else:
             messages.error(request, _("Unable to apply category."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
 
     result = CategorizeProductUseCase.execute(
         CategorizeProductCommand(
@@ -162,10 +166,10 @@ def ai_categorize_product(request: HttpRequest, product_id: int) -> HttpResponse
     )
     if result.fallback_reason == "no_categories":
         messages.warning(request, _("No categories available yet."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
     if result.fallback_reason == "content_blocked":
         messages.error(request, _("Content blocked by safety rules."))
-        return redirect("web:dashboard_ai_tools")
+        return redirect("ai_web:dashboard_ai_tools")
     products = Product.objects.filter(store_id=tenant_ctx.tenant_id).order_by("-id")[:50]
     return render(
         request,
@@ -185,7 +189,7 @@ def ai_visual_search(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         if not _allow_ai_request(tenant_ctx.tenant_id, "search"):
             messages.error(request, _("AI rate limit exceeded. Please try again shortly."))
-            return redirect("web:dashboard_ai_tools")
+            return redirect("ai_web:dashboard_ai_tools")
         image_file = request.FILES.get("image")
         result = VisualSearchUseCase.execute(
             VisualSearchCommand(

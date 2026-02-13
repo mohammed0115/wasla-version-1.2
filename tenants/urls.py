@@ -16,6 +16,7 @@ urlpatterns = [
     path("dashboard/setup/payment", wviews.dashboard_setup_payment, name="dashboard_setup_payment"),
     path("dashboard/setup/shipping", wviews.dashboard_setup_shipping, name="dashboard_setup_shipping"),
     path("dashboard/setup/activate", wviews.dashboard_setup_activate, name="dashboard_setup_activate"),
+    path("dashboard/", wviews.dashboard_home, name="dashboard_home"),
 
     # Store settings
     path("dashboard/store/info", wviews.store_settings_update, name="store_settings_update"),
