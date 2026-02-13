@@ -66,6 +66,17 @@ from .forms import (
 
 
 @login_required
+def dashboard_home(request: HttpRequest) -> HttpResponse:
+    # Simple dashboard landing page: send user to the next meaningful step
+    # If tenant is resolved, go to store settings
+    tenant = getattr(request, "tenant", None)
+    if tenant:
+        return redirect("tenants:store_settings_update")
+    # Otherwise go to store setup start
+    return redirect("tenants:store_setup_start")
+
+
+@login_required
 @require_http_methods(["GET", "POST"])
 def dashboard_setup_store(request: HttpRequest) -> HttpResponse:
     existing = resolve_tenant_for_request(request)
@@ -74,12 +85,12 @@ def dashboard_setup_store(request: HttpRequest) -> HttpResponse:
         if profile:
             state = StoreSetupWizardUseCase.get_state(profile=profile)
             if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_PAYMENT:
-                return redirect("web:dashboard_setup_payment")
+                return redirect("tenants:dashboard_setup_payment")
             if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_SHIPPING:
-                return redirect("web:dashboard_setup_shipping")
+                return redirect("tenants:dashboard_setup_shipping")
             if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_FIRST_PRODUCT:
-                return redirect("web:dashboard_setup_activate")
-        return redirect("web:dashboard")
+                return redirect("tenants:dashboard_setup_activate")
+        return redirect("tenants:store_settings_update")
 
     # If the merchant has not finished the persona/onboarding flow, send them there.
     # (The onboarding flow lives in the accounts app in this codebase.)
@@ -117,15 +128,15 @@ def dashboard_setup_store(request: HttpRequest) -> HttpResponse:
             if profile:
                 state = StoreSetupWizardUseCase.get_state(profile=profile)
                 if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_PAYMENT:
-                    return redirect("web:dashboard_setup_payment")
+                    return redirect("tenants:dashboard_setup_payment")
                 if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_SHIPPING:
-                    return redirect("web:dashboard_setup_shipping")
+                    return redirect("tenants:dashboard_setup_shipping")
                 if (
                     not profile.is_setup_complete
                     and state.current_step == StoreSetupWizardUseCase.STEP_FIRST_PRODUCT
                 ):
-                    return redirect("web:dashboard_setup_activate")
-            return redirect("web:dashboard_setup_payment")
+                    return redirect("tenants:dashboard_setup_activate")
+            return redirect("tenants:dashboard_setup_payment")
 
     return render(request, "web/store/store_info_setup.html", {"form": form})
 
@@ -143,18 +154,18 @@ def store_setup_start(request: HttpRequest) -> HttpResponse:
     tenant = request.tenant
     profile = StoreProfile.objects.filter(tenant=tenant).first()
     if not profile:
-        return redirect("web:dashboard_setup_store")
+        return redirect("tenants:dashboard_setup_store")
 
     state = StoreSetupWizardUseCase.get_state(profile=profile)
     if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_STORE_INFO:
-        return redirect("web:dashboard_setup_store")
+        return redirect("tenants:dashboard_setup_store")
     if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_PAYMENT:
-        return redirect("web:dashboard_setup_payment")
+        return redirect("tenants:dashboard_setup_payment")
     if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_SHIPPING:
-        return redirect("web:dashboard_setup_shipping")
+        return redirect("tenants:dashboard_setup_shipping")
     if not profile.is_setup_complete and state.current_step == StoreSetupWizardUseCase.STEP_FIRST_PRODUCT:
-        return redirect("web:dashboard_setup_activate")
-    return redirect("web:dashboard")
+        return redirect("tenants:dashboard_setup_activate")
+    return redirect("tenants:store_settings_update")
 
 
 @login_required
@@ -169,11 +180,11 @@ def dashboard_setup_payment(request: HttpRequest) -> HttpResponse:
 
     profile = StoreProfile.objects.filter(tenant=tenant).first()
     if not profile:
-        return redirect("web:dashboard_setup_store")
+        return redirect("tenants:dashboard_setup_store")
 
     state = StoreSetupWizardUseCase.get_state(profile=profile)
     if not profile.is_setup_complete and state.current_step < StoreSetupWizardUseCase.STEP_PAYMENT:
-        return redirect("web:dashboard_setup_store")
+        return redirect("tenants:dashboard_setup_store")
 
     existing = StorePaymentSettings.objects.filter(tenant=tenant).first()
     initial = None
@@ -204,7 +215,7 @@ def dashboard_setup_payment(request: HttpRequest) -> HttpResponse:
             messages.error(request, str(exc))
         else:
             messages.success(request, "Payment settings saved.")
-            return redirect("web:dashboard_setup_shipping")
+            return redirect("tenants:dashboard_setup_shipping")
 
     return render(
         request,
@@ -241,11 +252,11 @@ def dashboard_setup_shipping(request: HttpRequest) -> HttpResponse:
 
     profile = StoreProfile.objects.filter(tenant=tenant).first()
     if not profile:
-        return redirect("web:dashboard_setup_store")
+        return redirect("tenants:dashboard_setup_store")
 
     state = StoreSetupWizardUseCase.get_state(profile=profile)
     if not profile.is_setup_complete and state.current_step < StoreSetupWizardUseCase.STEP_SHIPPING:
-        return redirect("web:dashboard_setup_payment")
+        return redirect("tenants:dashboard_setup_payment")
 
     existing = StoreShippingSettings.objects.filter(tenant=tenant).first()
     initial = None
@@ -274,10 +285,10 @@ def dashboard_setup_shipping(request: HttpRequest) -> HttpResponse:
             )
         except ValueError as exc:
             messages.error(request, str(exc))
-            return redirect("web:dashboard_setup_payment")
+            return redirect("tenants:dashboard_setup_payment")
         else:
             messages.success(request, "Shipping settings saved. Next: activate your store.")
-            return redirect("web:dashboard_setup_activate")
+            return redirect("tenants:dashboard_setup_activate")
 
     return render(
         request,
@@ -314,16 +325,16 @@ def dashboard_setup_activate(request: HttpRequest) -> HttpResponse:
 
     profile = StoreProfile.objects.filter(tenant=tenant).first()
     if not profile:
-        return redirect("web:dashboard_setup_store")
+        return redirect("tenants:dashboard_setup_store")
 
     state = StoreSetupWizardUseCase.get_state(profile=profile)
     if not profile.is_setup_complete and state.current_step < StoreSetupWizardUseCase.STEP_FIRST_PRODUCT:
         if state.current_step == StoreSetupWizardUseCase.STEP_STORE_INFO:
-            return redirect("web:dashboard_setup_store")
+            return redirect("tenants:dashboard_setup_store")
         if state.current_step == StoreSetupWizardUseCase.STEP_PAYMENT:
-            return redirect("web:dashboard_setup_payment")
+            return redirect("tenants:dashboard_setup_payment")
         if state.current_step == StoreSetupWizardUseCase.STEP_SHIPPING:
-            return redirect("web:dashboard_setup_shipping")
+            return redirect("tenants:dashboard_setup_shipping")
 
     readiness = GetStoreReadinessUseCase.execute(
         GetStoreReadinessCommand(user=request.user, tenant=tenant)
@@ -340,16 +351,16 @@ def dashboard_setup_activate(request: HttpRequest) -> HttpResponse:
                     messages.error(request, reason)
             else:
                 messages.success(request, "Store activated successfully. Your store is now live.")
-                return redirect("web:dashboard_setup_activate")
+                return redirect("tenants:dashboard_setup_activate")
         elif action == "deactivate":
             DeactivateStoreUseCase.execute(
                 DeactivateStoreCommand(user=request.user, tenant=tenant, reason=request.POST.get("reason") or "")
             )
             messages.success(request, "Store deactivated. Visitors will see a maintenance page.")
-            return redirect("web:dashboard_setup_activate")
+            return redirect("tenants:dashboard_setup_activate")
         else:
             messages.error(request, "Invalid action.")
-            return redirect("web:dashboard_setup_activate")
+            return redirect("tenants:dashboard_setup_activate")
 
     public_domain = (tenant.domain or "").strip()
     if public_domain:
@@ -469,20 +480,54 @@ def store_setup_step4(request: HttpRequest) -> HttpResponse:
     # Wizard alias for activation
     return dashboard_setup_activate(request)
 
-
 @login_required
 @tenant_access_required
-@require_POST
+@require_http_methods(["GET", "POST"])
 def store_settings_update(request: HttpRequest) -> HttpResponse:
     tenant = request.tenant
+
     try:
         EnsureTenantOwnershipPolicy.ensure_is_owner(user=request.user, tenant=tenant)
     except StoreAccessDeniedError as exc:
         raise PermissionDenied(str(exc)) from exc
+
+    # ===== GET: عرض صفحة الإعدادات =====
+    if request.method == "GET":
+        initial = {
+            "name": tenant.name,
+            "slug": tenant.slug,
+            "currency": tenant.currency,
+            "language": tenant.language,
+            "primary_color": tenant.primary_color,
+            "secondary_color": tenant.secondary_color,
+        }
+
+        form = StoreSettingsForm(initial=initial)
+
+        return render(
+            request,
+            "web/store/setup_step1.html",  # استخدمنا نفس تمبلت الخطوة الأولى لتجنب TemplateNotFound
+            {
+                "form": form,
+                "tenant": tenant,
+                "step": 1,
+            },
+        )
+
+    # ===== POST: حفظ التعديلات =====
     form = StoreSettingsForm(request.POST, request.FILES or None)
+
     if not form.is_valid():
         messages.error(request, "Invalid store settings.")
-        return redirect("web:settings")
+        return render(
+            request,
+            "web/store/setup_step1.html",
+            {
+                "form": form,
+                "tenant": tenant,
+                "step": 1,
+            },
+        )
 
     try:
         UpdateStoreSettingsUseCase.execute(
@@ -501,10 +546,9 @@ def store_settings_update(request: HttpRequest) -> HttpResponse:
     except StoreSlugAlreadyTakenError as exc:
         messages.error(request, str(exc))
     else:
-        messages.success(request, "Store settings updated.")
+        messages.success(request, "Store settings updated successfully.")
 
-    return redirect("web:settings")
-
+    return redirect("tenants:store_settings_update")
 
 @require_GET
 def custom_domain_verification(request: HttpRequest, token: str) -> HttpResponse:
@@ -527,7 +571,7 @@ def custom_domain_add(request: HttpRequest) -> HttpResponse:
     form = CustomDomainForm(request.POST)
     if not form.is_valid():
         messages.error(request, "Invalid domain.")
-        return redirect("web:settings")
+        return redirect("tenants:store_settings_update")
 
     try:
         AddCustomDomainUseCase.execute(
@@ -542,7 +586,7 @@ def custom_domain_add(request: HttpRequest) -> HttpResponse:
     else:
         messages.success(request, "Domain added. Update DNS then verify.")
 
-    return redirect("web:settings")
+    return redirect("tenants:store_settings_update")
 
 
 @login_required
@@ -553,7 +597,7 @@ def custom_domain_verify(request: HttpRequest, domain_id: int) -> HttpResponse:
     domain = StoreDomain.objects.filter(id=domain_id, tenant=tenant).first()
     if not domain:
         messages.error(request, "Domain not found.")
-        return redirect("web:settings")
+        return redirect("tenants:store_settings_update")
 
     try:
         EnsureTenantOwnershipPolicy.ensure_is_owner(user=request.user, tenant=tenant)
@@ -562,7 +606,7 @@ def custom_domain_verify(request: HttpRequest, domain_id: int) -> HttpResponse:
 
     enqueue_verify_domain(domain_id=domain.id)
     messages.success(request, "Verification started. Please wait a moment.")
-    return redirect("web:settings")
+    return redirect("tenants:store_settings_update")
 
 
 @login_required
@@ -573,7 +617,7 @@ def custom_domain_disable(request: HttpRequest, domain_id: int) -> HttpResponse:
     domain = StoreDomain.objects.filter(id=domain_id, tenant=tenant).first()
     if not domain:
         messages.error(request, "Domain not found.")
-        return redirect("web:settings")
+        return redirect("tenants:store_settings_update")
 
     try:
         DisableDomainUseCase.execute(
@@ -588,4 +632,4 @@ def custom_domain_disable(request: HttpRequest, domain_id: int) -> HttpResponse:
     else:
         messages.success(request, "Domain disabled.")
 
-    return redirect("web:settings")
+    return redirect("web:store_settings_update")

@@ -63,7 +63,7 @@ def tenant_access_required(view_func):
     def _wrapped(request: HttpRequest, *args, **kwargs) -> HttpResponse:
         tenant = resolve_tenant_for_request(request)
         if not tenant:
-            return redirect("web:dashboard_setup_store")
+            return redirect("tenants:dashboard_setup_store")
 
         try:
             EnsureTenantOwnershipPolicy.ensure_can_access(user=request.user, tenant=tenant)
