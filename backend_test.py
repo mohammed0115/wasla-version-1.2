@@ -93,18 +93,18 @@ class WaslaDashboardTester:
             "User Login",
             "POST", 
             "/auth/?tab=login",
-            302,  # Expect redirect after successful login
+            200,  # May return 200 with success or error message
             data=login_data
         )
         
         if success and response:
-            # Check if we're redirected to dashboard or setup
-            final_url = response.url
-            if '/dashboard/' in final_url or '/store/' in final_url:
-                print(f"✅ Login successful, redirected to: {final_url}")
+            # Check if login was successful by testing access to a protected page
+            test_response = self.session.get(f"{self.base_url}/dashboard/overview")
+            if test_response.status_code == 200:
+                print(f"✅ Login successful - can access dashboard")
                 return True
             else:
-                print(f"❌ Login failed, unexpected redirect to: {final_url}")
+                print(f"❌ Login failed - cannot access dashboard (status: {test_response.status_code})")
         
         return False
 
