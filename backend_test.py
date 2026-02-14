@@ -9,7 +9,7 @@ import sys
 from datetime import datetime
 import json
 
-class WaslaAPITester:
+class WaslaDashboardTester:
     def __init__(self, base_url="http://localhost:8000"):
         self.base_url = base_url
         self.session = requests.Session()
@@ -18,362 +18,217 @@ class WaslaAPITester:
         self.csrf_token = None
         
     def get_csrf_token(self):
-        """Get CSRF token from auth page"""
+        """Get CSRF token from login page"""
         try:
-            response = self.session.get(f"{self.base_url}/auth/")
+            response = self.session.get(f"{self.base_url}/accounts/login/")
             if response.status_code == 200:
-                # Extract CSRF token from response
-                import re
-                csrf_match = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', response.text)
-                if csrf_match:
-                    self.csrf_token = csrf_match.group(1)
-                    return True
+                # Extract CSRF token from cookies
+                self.csrf_token = self.session.cookies.get('csrftoken')
+                return True
         except Exception as e:
-            print(f"Failed to get CSRF token: {e}")
+            print(f"❌ Failed to get CSRF token: {e}")
         return False
 
-    def login(self, username="merchant", password="test1234"):
-        """Login to get authenticated session"""
-        print(f"\n🔐 Logging in as {username}...")
+    def run_test(self, name, method, endpoint, expected_status, data=None, follow_redirects=True):
+        """Run a single test"""
+        url = f"{self.base_url}{endpoint}"
+        headers = {}
         
-        if not self.get_csrf_token():
-            print("❌ Failed to get CSRF token")
-            return False
-            
-        # Get user email for login (username is email in this system)
-        user_email = "merchant@test.com"  # Based on our setup
-        
-        # Try login form submission
-        login_data = {
-            'action': 'login',
-            'login-email': user_email,
-            'login-password': password,
-            'csrfmiddlewaretoken': self.csrf_token
-        }
-        
-        try:
-            response = self.session.post(
-                f"{self.base_url}/auth/",
-                data=login_data,
-                headers={'Referer': f"{self.base_url}/auth/"}
-            )
-            
-            print(f"   Login response status: {response.status_code}")
-            
-            # Check if login was successful by trying to access a protected page
-            test_response = self.session.get(f"{self.base_url}/dashboard/themes")
-            if test_response.status_code == 200:
-                print("✅ Login successful")
-                return True
-            elif test_response.status_code == 500:
-                print("⚠️  Login successful but pages have errors - continuing tests")
-                return True
-            else:
-                print(f"⚠️  Login may have failed - Status: {test_response.status_code}")
-                # Try to continue anyway for testing
-                return True
-                
-        except Exception as e:
-            print(f"❌ Login error: {e}")
-            return False
+        if data and self.csrf_token:
+            data['csrfmiddlewaretoken'] = self.csrf_token
+            headers['X-CSRFToken'] = self.csrf_token
+            headers['Referer'] = url
 
-    def run_test(self, name, method, endpoint, expected_status, data=None, files=None):
-        """Run a single API test"""
-        url = urljoin(self.base_url, endpoint)
-        
         self.tests_run += 1
         print(f"\n🔍 Testing {name}...")
         print(f"   URL: {url}")
         
         try:
-            headers = {}
-            if self.csrf_token:
-                headers['X-CSRFToken'] = self.csrf_token
-                headers['Referer'] = self.base_url
-            
             if method == 'GET':
-                response = self.session.get(url, headers=headers)
+                response = self.session.get(url, allow_redirects=follow_redirects)
             elif method == 'POST':
-                if files:
-                    # For file uploads, add CSRF token to data
-                    if data is None:
-                        data = {}
-                    data['csrfmiddlewaretoken'] = self.csrf_token
-                    response = self.session.post(url, data=data, files=files, headers={'Referer': self.base_url})
-                else:
-                    response = self.session.post(url, data=data, headers=headers)
-            
+                response = self.session.post(url, data=data, headers=headers, allow_redirects=follow_redirects)
+
             success = response.status_code == expected_status
             if success:
                 self.tests_passed += 1
                 print(f"✅ Passed - Status: {response.status_code}")
-                if response.headers.get('content-type', '').startswith('text/html'):
-                    print(f"   Response: HTML page ({len(response.text)} chars)")
-                elif response.headers.get('content-type', '').startswith('text/csv'):
-                    print(f"   Response: CSV file ({len(response.content)} bytes)")
-                elif response.headers.get('content-type', '').startswith('application/pdf'):
-                    print(f"   Response: PDF file ({len(response.content)} bytes)")
-                else:
-                    print(f"   Response: {response.headers.get('content-type', 'unknown')}")
+                if response.history:
+                    print(f"   Redirected from: {[r.url for r in response.history]}")
+                    print(f"   Final URL: {response.url}")
             else:
                 print(f"❌ Failed - Expected {expected_status}, got {response.status_code}")
-                if response.text:
-                    print(f"   Error: {response.text[:200]}...")
-            
+                print(f"   Final URL: {response.url}")
+                if response.text and len(response.text) < 500:
+                    print(f"   Response: {response.text[:200]}...")
+
             return success, response
-            
+
         except Exception as e:
             print(f"❌ Failed - Error: {str(e)}")
             return False, None
 
-    def test_csv_template_download(self):
-        """Test CSV template download endpoint"""
-        success, response = self.run_test(
-            "CSV Template Download",
-            "GET", 
-            "/dashboard/import/template",
-            200
-        )
+    def test_login(self, email, password):
+        """Test login functionality"""
+        print(f"\n🔐 Testing login with {email}")
         
-        if success and response:
-            # Verify it's a CSV file
-            content_type = response.headers.get('content-type', '')
-            if 'text/csv' in content_type:
-                print("   ✅ Correct content type: CSV")
-                
-                # Check CSV content
-                csv_content = response.text
-                if 'name_ar,name_en' in csv_content:
-                    print("   ✅ CSV headers found")
-                else:
-                    print("   ⚠️  CSV headers not found")
-                    
-                # Check for sample data
-                if 'قميص أبيض كلاسيكي' in csv_content:
-                    print("   ✅ Sample data found")
-                else:
-                    print("   ⚠️  Sample data not found")
-            else:
-                print(f"   ❌ Wrong content type: {content_type}")
-                
-        return success
-
-    def test_import_index_page(self):
-        """Test import index page"""
-        success, response = self.run_test(
-            "Import Index Page",
-            "GET",
-            "/dashboard/import",
-            200
-        )
-        
-        if success and response:
-            # Check for key elements in HTML
-            html = response.text
-            if 'csv-upload-zone' in html:
-                print("   ✅ CSV upload zone found")
-            if 'images-upload-zone' in html:
-                print("   ✅ Images upload zone found")
-            if 'download-csv-template' in html:
-                print("   ✅ Template download link found")
-                
-        return success
-
-    def test_themes_list_page(self):
-        """Test themes list page"""
-        success, response = self.run_test(
-            "Themes List Page",
-            "GET",
-            "/dashboard/themes",
-            200
-        )
-        
-        if success and response:
-            html = response.text
-            themes = ['classic', 'modern', 'minimal', 'elegant', 'bold']
-            found_themes = 0
-            
-            for theme in themes:
-                if f'theme-card-{theme}' in html:
-                    found_themes += 1
-                    print(f"   ✅ Theme {theme} found")
-                else:
-                    print(f"   ❌ Theme {theme} not found")
-                    
-            if found_themes == 5:
-                print("   ✅ All 5 themes found")
-            else:
-                print(f"   ⚠️  Only {found_themes}/5 themes found")
-                
-        return success
-
-    def test_theme_selection(self):
-        """Test theme selection form submission"""
-        success, response = self.run_test(
-            "Theme Selection",
-            "POST",
-            "/dashboard/themes",
-            302,  # Expect redirect after successful form submission
-            data={'theme_code': 'modern'}
-        )
-        return success
-
-    def test_branding_edit_page(self):
-        """Test branding edit page"""
-        success, response = self.run_test(
-            "Branding Edit Page",
-            "GET",
-            "/dashboard/branding",
-            200
-        )
-        
-        if success and response:
-            html = response.text
-            elements = [
-                'primary-color-picker',
-                'secondary-color-picker', 
-                'accent-color-picker',
-                'logo-upload',
-                'font-select',
-                'live-preview'
-            ]
-            
-            for element in elements:
-                if element in html:
-                    print(f"   ✅ {element} found")
-                else:
-                    print(f"   ❌ {element} not found")
-                    
-        return success
-
-    def test_branding_form_submission(self):
-        """Test branding form submission"""
-        success, response = self.run_test(
-            "Branding Form Submission",
-            "POST",
-            "/dashboard/branding",
-            302,  # Expect redirect after successful form submission
-            data={
-                'primary_color': '#FF5733',
-                'secondary_color': '#33FF57',
-                'accent_color': '#3357FF',
-                'font_family': 'Cairo'
-            }
-        )
-        return success
-
-    def test_exports_index_page(self):
-        """Test exports index page"""
-        success, response = self.run_test(
-            "Exports Index Page",
-            "GET",
-            "/dashboard/exports",
-            200
-        )
-        
-        if success and response:
-            html = response.text
-            elements = [
-                'orders-csv-export',
-                'invoice-pdf-export',
-                'export-csv-btn',
-                'orders-table'
-            ]
-            
-            for element in elements:
-                if element in html:
-                    print(f"   ✅ {element} found")
-                else:
-                    print(f"   ❌ {element} not found")
-                    
-        return success
-
-    def test_orders_csv_export(self):
-        """Test orders CSV export"""
-        success, response = self.run_test(
-            "Orders CSV Export",
-            "GET",
-            "/dashboard/exports/orders.csv",
-            200
-        )
-        
-        if success and response:
-            content_type = response.headers.get('content-type', '')
-            if 'text/csv' in content_type:
-                print("   ✅ Correct content type: CSV")
-            else:
-                print(f"   ❌ Wrong content type: {content_type}")
-                
-        return success
-
-    def test_pdf_invoice_generation(self):
-        """Test PDF invoice generation for a sample order"""
-        # Try with order ID 1 (should exist based on seeded data)
-        success, response = self.run_test(
-            "PDF Invoice Generation",
-            "GET",
-            "/dashboard/exports/invoice/1.pdf",
-            200
-        )
-        
-        if success and response:
-            content_type = response.headers.get('content-type', '')
-            if 'application/pdf' in content_type:
-                print("   ✅ Correct content type: PDF")
-                if len(response.content) > 1000:  # PDF should be substantial
-                    print(f"   ✅ PDF size looks good: {len(response.content)} bytes")
-                else:
-                    print(f"   ⚠️  PDF seems small: {len(response.content)} bytes")
-            else:
-                print(f"   ❌ Wrong content type: {content_type}")
-                
-        return success
-
-    def run_all_tests(self):
-        """Run all backend tests"""
-        print("🚀 Starting Wasla Phase 3 Backend API Tests")
-        print("=" * 50)
-        
-        # Login first
-        if not self.login():
-            print("❌ Cannot proceed without authentication")
+        # Get CSRF token first
+        if not self.get_csrf_token():
             return False
             
-        # Test all endpoints
-        tests = [
-            self.test_csv_template_download,
-            self.test_import_index_page,
-            self.test_themes_list_page,
-            self.test_theme_selection,
-            self.test_branding_edit_page,
-            self.test_branding_form_submission,
-            self.test_exports_index_page,
-            self.test_orders_csv_export,
-            self.test_pdf_invoice_generation
-        ]
+        login_data = {
+            'username': email,
+            'password': password,
+        }
         
-        for test in tests:
-            try:
-                test()
-            except Exception as e:
-                print(f"❌ Test {test.__name__} failed with error: {e}")
-                
-        # Print summary
-        print("\n" + "=" * 50)
-        print(f"📊 Test Results: {self.tests_passed}/{self.tests_run} passed")
+        success, response = self.run_test(
+            "User Login",
+            "POST", 
+            "/accounts/login/",
+            302,  # Expect redirect after successful login
+            data=login_data
+        )
         
-        if self.tests_passed == self.tests_run:
-            print("🎉 All tests passed!")
+        if success and response:
+            # Check if we're redirected to dashboard or setup
+            final_url = response.url
+            if '/dashboard/' in final_url or '/store/' in final_url:
+                print(f"✅ Login successful, redirected to: {final_url}")
+                return True
+            else:
+                print(f"❌ Login failed, unexpected redirect to: {final_url}")
+        
+        return False
+
+    def test_dashboard_authentication(self):
+        """Test dashboard pages require authentication"""
+        print(f"\n🔒 Testing Dashboard Authentication Requirements")
+        
+        # Test dashboard home without authentication
+        success, response = self.run_test(
+            "Dashboard Home (Unauthenticated)",
+            "GET",
+            "/dashboard/",
+            302  # Should redirect to login
+        )
+        
+        if success and response and '/accounts/login/' in response.url:
+            print("✅ Dashboard correctly redirects unauthenticated users to login")
             return True
         else:
-            print(f"⚠️  {self.tests_run - self.tests_passed} tests failed")
+            print("❌ Dashboard authentication check failed")
             return False
 
+    def test_dashboard_pages(self):
+        """Test all dashboard pages when authenticated"""
+        dashboard_pages = [
+            ("/dashboard/", "Dashboard Home"),
+            ("/dashboard/overview", "Dashboard Overview"),
+            ("/dashboard/orders", "Dashboard Orders"),
+            ("/dashboard/products", "Dashboard Products"),
+            ("/dashboard/ai/tools", "AI Tools"),
+            ("/dashboard/store/info", "Store Settings"),
+            ("/dashboard/settlements", "Settlements"),
+        ]
+        
+        print(f"\n📊 Testing Dashboard Pages (Authenticated)")
+        
+        all_passed = True
+        for endpoint, name in dashboard_pages:
+            success, response = self.run_test(
+                name,
+                "GET",
+                endpoint,
+                200  # Should load successfully
+            )
+            
+            if not success:
+                all_passed = False
+                
+            # Check for key elements in response
+            if success and response:
+                content = response.text.lower()
+                if 'dashboard' in content and 'sidebar' in content:
+                    print(f"   ✅ Page contains expected dashboard elements")
+                else:
+                    print(f"   ⚠️  Page may be missing dashboard elements")
+        
+        return all_passed
+
+    def test_language_switching(self):
+        """Test language switching functionality"""
+        print(f"\n🌐 Testing Language Switching")
+        
+        # Test language switch endpoint
+        success, response = self.run_test(
+            "Language Switch (POST)",
+            "POST",
+            "/i18n/setlang/",
+            302,  # Should redirect
+            data={'language': 'en', 'next': '/dashboard/overview'}
+        )
+        
+        return success
+
+    def test_tenant_context(self):
+        """Test tenant context is properly set"""
+        print(f"\n🏪 Testing Tenant Context")
+        
+        # Test a page that requires tenant context
+        success, response = self.run_test(
+            "Store Settings (Tenant Required)",
+            "GET",
+            "/dashboard/store/info",
+            200
+        )
+        
+        if success and response:
+            content = response.text
+            if 'tenant' in content.lower() or 'store' in content.lower():
+                print("   ✅ Tenant context appears to be working")
+                return True
+            else:
+                print("   ⚠️  Tenant context may not be properly set")
+        
+        return success
+
 def main():
-    """Main test runner"""
-    tester = WaslaAPITester()
-    success = tester.run_all_tests()
-    return 0 if success else 1
+    """Main test execution"""
+    print("🚀 Starting Wasla Dashboard Backend Tests")
+    print("=" * 50)
+    
+    tester = WaslaDashboardTester("http://localhost:8000")
+    
+    # Test 1: Dashboard authentication (unauthenticated)
+    auth_test_passed = tester.test_dashboard_authentication()
+    
+    # Test 2: Login with test credentials
+    login_success = tester.test_login("merchant@test.com", "test1234")
+    
+    if not login_success:
+        print("\n❌ Login failed - cannot proceed with authenticated tests")
+        print(f"\n📊 Tests passed: {tester.tests_passed}/{tester.tests_run}")
+        return 1
+    
+    # Test 3: Dashboard pages (authenticated)
+    dashboard_test_passed = tester.test_dashboard_pages()
+    
+    # Test 4: Language switching
+    lang_test_passed = tester.test_language_switching()
+    
+    # Test 5: Tenant context
+    tenant_test_passed = tester.test_tenant_context()
+    
+    # Print final results
+    print("\n" + "=" * 50)
+    print(f"📊 Final Results: {tester.tests_passed}/{tester.tests_run} tests passed")
+    
+    if tester.tests_passed == tester.tests_run:
+        print("🎉 All tests passed!")
+        return 0
+    else:
+        print("❌ Some tests failed")
+        return 1
 
 if __name__ == "__main__":
     sys.exit(main())
