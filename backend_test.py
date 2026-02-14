@@ -18,9 +18,9 @@ class WaslaDashboardTester:
         self.csrf_token = None
         
     def get_csrf_token(self):
-        """Get CSRF token from login page"""
+        """Get CSRF token from auth page"""
         try:
-            response = self.session.get(f"{self.base_url}/accounts/login/")
+            response = self.session.get(f"{self.base_url}/auth/?tab=login")
             if response.status_code == 200:
                 # Extract CSRF token from cookies
                 self.csrf_token = self.session.cookies.get('csrftoken')
