@@ -110,3 +110,7 @@ backend/.git/objects/pack/pack-dada9bae72be3b37318308422231e41b0ae97943.pack
 *.env
 *.env.*
 wasla_original.zip
+-e 
+# Environment files
+*.env
+*.env.*
