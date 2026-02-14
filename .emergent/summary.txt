@@ -1,0 +1,152 @@
+<analysis>**original_problem_statement:**
+The user wants to implement Phase 3 features in an existing Django repository ().
+
+**Repo facts (must follow):**
+- Django root package: 
+- Architecture: Clean Architecture (domain / application / infrastructure / interfaces)
+- Web: Django Templates + Bootstrap RTL
+- API: DRF exists
+- Multi-tenant enforced everywhere
+- DB: SQLite now; MySQL-compatible later
+
+**PHASE 3 GOAL (P1): “MERCHANT GROWTH & STORE SETUP AUTOMATION”**
+1.  **Bulk product upload (CSV + images)**
+2.  **Theme selection + branding improvements (logo/colors/fonts)**
+3.  **Order exports (CSV + PDF invoice basic)**
+4.  **Setup wizard UX improvements** (no new onboarding steps, just better UX)
+
+The user later provided more detailed instructions for a **Unified Merchant Dashboard UI** based on a , and then a **Phase 0 — STABILIZATION ONLY** task to fix foundational issues like i18n, CSS conflicts, and auth guards before proceeding with the dashboard.
+
+Most recently, the user expressed frustration with the project structure (you pushed error projects, note js) and clarified they want to use **only django -python with first structure**, implying the default FastAPI/React setup should be removed entirely.
+
+**User's preferred language**: English
+
+**what currently exists?**
+The workspace is in a disorganized state. The original FastAPI/React structure has been partially or fully removed. The Django project, including all work done on Phase 3, the Dashboard UI, and Phase 0 stabilization, was cloned into  and then archived into . The previous agent's attempts to move the Django project to the root directory have left the file system in an inconsistent state.
+
+**Last working item**:
+- **Last item agent was working:** The agent was trying to satisfy the user's request to eliminate the default platform's file structure (FastAPI/React) and use only the Django project. The agent's file move commands failed, so it re-cloned the repository and created a zip archive of the complete Django project named .
+- **Status:** BLOCKED
+- **Agent Testing Done:** N
+- **Which testing method agent to use?** NA (The immediate task is project restructuring, not feature testing).
+- **User Testing Done:** N
+
+**All Pending/In progress Issue list**:
+-   **Issue 1: (P0) Project Structure is Incorrect and Unstable.**
+
+**Issues Detail:**
+-   **Issue 1: Project Structure is Incorrect and Unstable.**
+    -   **Attempted fixes:** The previous agent tried to move the Django project files from a subdirectory () to  and remove the default  and  directories. This process was not clean and resulted in errors, leading the agent to create a zip file as a backup.
+    -   **Next debug checklist:**
+        1.  **CRITICAL:** Clean the  directory. Remove all existing project files and directories (, , , , , etc.) to start from a clean slate.
+        2.  Re-clone the user's repository: .
+        3.  **DO NOT USE THE ZIP FILE.** The zip contains the agent's previous work, which was built on the wrong structure. It's better to re-apply the changes to a fresh clone in the correct structure.
+        4.  Move the contents of the  into a new  directory.  and .
+        5.  Remove the now-empty  directory ().
+        6.  Update the supervisor configuration () to run the Django application using Gunicorn, instead of Uvicorn for FastAPI. The command should be something like .
+        7.  Install dependencies from .
+        8.  Run Django migrations: .
+        9.  Restart supervisor: backend: stopped
+backend: ERROR (spawn error).
+        10. Verify the Django application is running and accessible.
+    -   **Why fix this issue and what will be achieved with the fix?** The user is blocked and frustrated because the project structure does not match their request. Fixing this is essential to regain user trust and establish a stable foundation to continue work.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** Backend
+    -   **Blocked on other issue:** None. This is the primary blocker.
+
+**In progress Task List**:
+None. All work is blocked by the project structure issue.
+
+**Upcoming and Future Tasks**
+- **Upcoming Tasks (P0): Re-implement Phase 0 Stabilization**
+    - After the project structure is fixed, re-apply the stabilization fixes.
+    - **Fix CSS conflicts:** Consolidate CSS definitions in  to have only one  and remove duplicate class definitions.
+    - **Fix i18n/RTL:** Ensure  uses  for README.md	 frontend_old		test_reports	wasla_django.zip
+backend_old	 memory			test_result.md	wasla_project
+backend_test.py  p1_p2_backend_test.py	tests		yarn.lock and middleware is correct.
+    - **Fix auth + guards:** Set , and ensure all dashboard-related views have  and  decorators.
+
+- **Upcoming Tasks (P1): Re-implement Phase 3 & Dashboard UI**
+    - Once the structure is stable and Phase 0 is re-applied, systematically re-implement the features that were previously built.
+    - **Task:** Implement Bulk Product Upload.
+    - **Task:** Implement Theme Selection & Branding.
+    - **Task:** Implement Order Exports.
+    - **Task:** Implement the Unified Merchant Dashboard UI as per .
+    - **Task:** Implement KPI analytics for the dashboard.
+
+**Completed work in this session**
+Technically, no work is completed as the entire project structure was rejected by the user and needs to be redone. The previous agent did perform the following actions, the logic of which can be reused:
+-   Initial implementation of Phase 3 features (bulk import, theming, exports).
+-   Development of a unified dashboard UI.
+-   Fixing foundational issues (CSS, i18n, auth guards) during Phase 0.
+
+**Earlier issues found/mentioned but not fixed**
+- The core issue of project structure, which was a misunderstanding from the start, has now been identified but not yet resolved.
+
+**Known issue recurrence from previous fork**
+-   N/A
+
+**Code Architecture**
+The target architecture is a pure Django project running within the platform's  directory. The project itself follows Clean Architecture principles with , , , and  layers.
+
+**key DB schema**
+-   : Tracks status of bulk CSV imports.
+-   : Defines available store themes.
+-   : Tenant-specific branding (logo, colors, font).
+-   Other core models exist for , , , .
+
+**changes in tech stack**
+-   The stack is being changed from the default  to  only for the backend. The  directory and its Node.js dependencies will be removed.
+
+**All files of reference**
+-   : A zip archive of the Django project with all the (now invalid) work done by the previous agent. Should likely be ignored in favor of a fresh clone.
+-   : Python dependencies for the Django project.
+-   : Supervisor configuration that needs to be updated to run Django.
+-   : The user-provided PDF outlining the required UI/UX for the dashboard.
+
+**Areas that need refactoring**:
+- The entire project workspace in  needs to be refactored to correctly host and run the Django application as the sole backend service.
+
+**key api endpoints**
+- All endpoints are Django template-rendered views, not DRF API endpoints. Key URL groups are , , , , etc.
+
+**Critical Info for New Agent**
+- **User Frustration:** The user is frustrated with the project setup. Your absolute first priority is to fix the project structure. Do not proceed with any feature work until the user confirms the new structure is correct.
+- **Ditch the Old Setup:** You MUST abandon the default FastAPI/React structure. The user wants **only Python/Django**.
+- **Clean Slate Recommended:** The workspace is messy. It is highly recommended to delete the existing project directories and start from a fresh clone of the user's repository () into the  directory.
+- **Supervisor Config:** You will need to modify the supervisor configuration for the  service to run Django with Gunicorn, not FastAPI with Uvicorn.
+- **Re-apply, Don't Copy:** Once the structure is stable, you should re-implement the stabilization and feature work. While the logic exists in the previous agent's history, simply copying files might not work due to path differences. Re-apply the changes logically.
+
+**documents and test reports created in this job**
+-   /app/memory/PRD.md
+-   /app/test_reports/iteration_1.json
+-   /app/test_reports/iteration_2.json
+-   /app/test_reports/iteration_3.json
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **user:**  - Request to fix specific bugs. (Status: Agent attempted fix, but work was invalidated by later structural change request).
+2.  **user:**  - Critical course correction, defining Phase 0 stabilization tasks. (Status: Agent completed Phase 0, but work was invalidated).
+3.  **user:**  - User expresses confusion about the project stack, seeing Node.js files. (Status: Pending resolution).
+4.  **user:**  - User expresses frustration with the state of the project. (Status: Pending resolution).
+5.  **user:**  - User provides the critical instruction to remove the default platform stack and use only Django. (Status: This is the main pending task).
+6.  **user:**  - User requested a deliverable of the project. (Status: Agent created a zip file).
+
+**Project Health Check:**
+-   **Broken:** The entire application is broken due to an incorrect and unstable project structure. Supervisor is likely configured for a non-existent FastAPI server.
+
+**3rd Party Integrations**
+-   None specified or implemented.
+
+**Testing status**
+-   Testing agent was used multiple times, but all previous test runs and fixes are now invalid because the underlying project structure was rejected by the user.
+-   No test files were created.
+-   Known regressions: The entire application is currently non-functional.
+
+**Credentials to test flow:**
+Seed script creates a user:
+-   **Email:** 
+-   **Password:** 
+
+**What agent forgot to execute**
+The agent failed to correctly interpret the user's core requirement of working on a pure Django project from the beginning. It followed the default platform setup (FastAPI/React), leading to user frustration and the need to scrap all the work and restart the project structure.</analysis>
