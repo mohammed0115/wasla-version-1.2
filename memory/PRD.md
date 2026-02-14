@@ -1,7 +1,7 @@
 # Wasla E-commerce Platform - Phase 3 PRD
 
 ## Original Problem Statement
-Implement Phase 3 ONLY: "MERCHANT GROWTH & STORE SETUP AUTOMATION" for existing Django 5 e-commerce platform.
+Implement Phase 3 ONLY: "MERCHANT GROWTH & STORE SETUP AUTOMATION" for existing Django 5 e-commerce platform + Unified Merchant Dashboard UI following PROTOTYPE_SCENARIOS.pdf.
 
 ## Architecture
 - **Framework**: Django 5 with Clean Architecture (domain/application/infrastructure/interfaces)
@@ -14,99 +14,104 @@ Implement Phase 3 ONLY: "MERCHANT GROWTH & STORE SETUP AUTOMATION" for existing 
 - **Merchant**: Creates stores, uploads products, manages orders, customizes branding
 - **Customer**: Browses products, places orders, tracks deliveries
 
-## Core Requirements (Phase 3 P1)
+## Core Requirements
 
-### 1. Bulk Product Upload (CSV + Images) ✅
-- CSV template download with Arabic/English headers
-- Drag-and-drop upload zone for CSV (max 5MB)
-- Multi-image upload (up to 50 images, jpg/png/webp, max 5MB each)
-- Validation: headers, required fields, SKU uniqueness, number formats
-- Progress tracking and error display
-- Import job history
+### Phase 3 P1: Merchant Growth & Store Setup Automation
+1. ✅ Bulk Product Upload (CSV + Images)
+2. ✅ Theme Selection + Branding Improvements
+3. ✅ Order Exports (CSV + PDF Invoice)
+4. ✅ Setup Wizard UX Improvements
 
-### 2. Theme Selection + Branding ✅
-- 5 pre-built themes: classic, modern, minimal, elegant, bold
-- Live preview of theme selection
-- Full branding customization:
-  - Logo upload (PNG/JPG)
-  - Primary, secondary, accent colors (#RRGGBB validation)
-  - Font family selection (Tajawal, Cairo, Noto Sans Arabic, Inter, Almarai)
-- Real-time preview panel
+### Unified Merchant Dashboard UI
+1. ✅ Dashboard Overview with KPI cards
+2. ✅ Orders List with status chips
+3. ✅ Products List
+4. ✅ Settlements with balance summary
+5. ✅ AI Tools integration
+6. ✅ Store Settings form
+7. ✅ RTL/LTR language switching
 
-### 3. Order Exports (CSV + PDF Invoice) ✅
-- Orders CSV export with filters (status, date range)
-- Professional PDF invoice generation with:
-  - Header with branding colors
-  - Customer info and order details
-  - Line items with pricing
-  - VAT calculation (15%)
-  - Total amount
+## Scenario → Screen Map
 
-### 4. Setup Wizard UX Improvements ✅
-- Enhanced UI with progress indicators
-- Better form validation feedback
-- Streamlined 4-step wizard flow
+| Screen | URL | Template | View |
+|--------|-----|----------|------|
+| Dashboard Overview | /dashboard/overview | dashboard/overview.html | dashboard_overview |
+| Orders List | /dashboard/orders | dashboard/orders/list.html | dashboard_orders |
+| Products List | /dashboard/products | dashboard/products/list.html | dashboard_products |
+| Settlements | /dashboard/settlements | dashboard/settlements/list.html | settlement_list |
+| AI Tools | /dashboard/ai/tools | dashboard/ai/tools.html | ai_tools |
+| Store Settings | /dashboard/store/info | dashboard/store/settings.html | store_settings_update |
+| Themes | /dashboard/themes | dashboard/themes/list.html | themes_list |
+| Branding | /dashboard/branding | dashboard/branding/edit.html | branding_edit |
+| Imports | /dashboard/import | dashboard/import/index.html | import_index |
+| Exports | /dashboard/exports | dashboard/exports/index.html | exports_index |
 
 ## What's Been Implemented (2026-02-14)
 
+### Dashboard Framework
+- `templates/dashboard/base_dashboard.html` - Main dashboard shell
+- `templates/dashboard/partials/sidebar.html` - Sidebar navigation
+- `templates/dashboard/partials/topbar.html` - Top bar with language switcher
+- `static/css/dashboard.css` - Unified dashboard styling
+
+### New Views Added
+- `tenants/interfaces/web/views.py`:
+  - `dashboard_overview()` - KPI cards, recent orders
+  - `dashboard_orders()` - Orders list
+  - `dashboard_products()` - Products list
+
+### Authentication Guards
+- All dashboard views decorated with `@login_required`
+- All tenant-specific views decorated with `@tenant_access_required`
+- Unauthenticated users redirect to `/auth/?next=...`
+
+### Design Tokens Used (from existing app.css)
+- `--bg:#ffffff`, `--text:#0f172a`, `--muted:#64748b`
+- `--line:#e5e7eb`, `--card:#ffffff`, `--soft:#f6f8fb`
+- `--input:#eaf2ff`, `--primary:#1F4FD8`, `--danger:#ef4444`
+- `--shadow:0 10px 30px rgba(15,23,42,.08)`, `--radius:14px`
+
 ### Files Created/Modified
 
-#### Import Module
-- `/app/wasla_repo/imports/interfaces/web/views.py` - Added CSV template download
-- `/app/wasla_repo/imports/interfaces/web/urls.py` - Added template route
-- `/app/wasla_repo/templates/dashboard/import/index.html` - Rich drag-drop UI
-- `/app/wasla_repo/templates/dashboard/import/job_detail.html` - Enhanced status page
+#### New Files
+- `/app/wasla_repo/templates/dashboard/base_dashboard.html`
+- `/app/wasla_repo/templates/dashboard/partials/sidebar.html`
+- `/app/wasla_repo/templates/dashboard/partials/topbar.html`
+- `/app/wasla_repo/templates/dashboard/overview.html`
+- `/app/wasla_repo/templates/dashboard/orders/list.html`
+- `/app/wasla_repo/templates/dashboard/products/list.html`
+- `/app/wasla_repo/templates/dashboard/store/settings.html`
+- `/app/wasla_repo/static/css/dashboard.css`
 
-#### Themes Module
-- `/app/wasla_repo/themes/interfaces/web/views.py` - Added font choices, fixed redirects
-- `/app/wasla_repo/themes/migrations/0004_add_more_themes.py` - Added elegant, bold themes
-- `/app/wasla_repo/templates/dashboard/themes/list.html` - Theme grid with previews
-- `/app/wasla_repo/templates/dashboard/branding/edit.html` - Full branding editor
+#### Modified Files
+- `/app/wasla_repo/tenants/urls.py` - Added dashboard routes
+- `/app/wasla_repo/tenants/interfaces/web/views.py` - Added dashboard views
+- `/app/wasla_repo/ai/interfaces/web/views.py` - Added @login_required
+- `/app/wasla_repo/exports/interfaces/web/views.py` - Added @login_required
+- `/app/wasla_repo/settlements/interfaces/web/views.py` - Added @login_required
+- `/app/wasla_repo/accounts/views.py` - Fixed login redirect to dashboard
 
-#### Exports Module
-- `/app/wasla_repo/exports/interfaces/web/views.py` - Added orders list context
-- `/app/wasla_repo/exports/interfaces/web/urls.py` - Fixed URL names
-- `/app/wasla_repo/exports/infrastructure/exporters.py` - Enhanced PDF invoice
-- `/app/wasla_repo/templates/dashboard/exports/index.html` - Rich export UI
+### Test Data Seeded
+- User: merchant@test.com / test1234
+- Store: test-store with products and orders
 
-### Database Seed Data
-- Test user: merchant@test.com / test1234
-- Test tenant: test-store (متجر اختبار)
-- 5 themes seeded
-- Sample products and orders
+## Manual QA Checklist
+- [x] Login redirect works (/auth/?next=...)
+- [x] /dashboard/ loads (redirects to overview)
+- [x] RTL/LTR flips layout correctly
+- [x] Language switch affects ALL content
+- [x] Mobile responsiveness (sidebar collapses)
+- [x] No NoReverseMatch errors
+- [x] No 405 method errors
+- [x] No AnonymousUser TypeError
 
-## Prioritized Backlog
-
-### P0 (Critical) - DONE
-- ✅ Bulk CSV upload with validation
-- ✅ Theme selection UI
-- ✅ Basic branding customization
-- ✅ Order CSV export
-- ✅ PDF invoice generation
-
-### P1 (High Priority)
-- Background job processing for large imports (Celery)
-- Bulk invoice PDF generation
-- Image URL support in CSV import
-
-### P2 (Medium Priority)
-- Theme preview images
-- Advanced color palette extraction from logo
-- Export job history
-
-### P3 (Low Priority)
-- Full theme marketplace
-- Custom theme creation
-- RTL PDF with Arabic fonts
-
-## Next Tasks
-1. Test authentication flow with actual browser session
-2. Add background job support for large imports
-3. Implement image URL download during import
-4. Add bulk invoice generation feature
+## Next Action Items
+- P1: Fix frontend login form tab switching UI issue
+- P2: Add Celery background jobs for large imports
+- P2: Implement analytics data for KPI cards
 
 ## Technical Notes
-- Dashboard pages require authentication and tenant context
-- CSV template endpoint is public (no auth required)
+- Dashboard pages require authentication via @login_required
+- Tenant context required via @tenant_access_required
 - All queries filtered by store_id for tenant isolation
-- Colors validated to #RRGGBB format only
+- Language switching uses Django's set_language view
