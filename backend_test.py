@@ -168,7 +168,7 @@ class WaslaDashboardTester:
         """Test language switching functionality"""
         print(f"\n🌐 Testing Language Switching")
         
-        # Test language switch endpoint
+        # Test language switch endpoint with proper CSRF token
         success, response = self.run_test(
             "Language Switch (POST)",
             "POST",
