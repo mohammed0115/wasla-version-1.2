@@ -112,15 +112,16 @@ class WaslaDashboardTester:
         """Test dashboard pages require authentication"""
         print(f"\n🔒 Testing Dashboard Authentication Requirements")
         
-        # Test dashboard home without authentication
+        # Test dashboard home without authentication - don't follow redirects to check redirect behavior
         success, response = self.run_test(
             "Dashboard Home (Unauthenticated)",
             "GET",
             "/dashboard/",
-            302  # Should redirect to login
+            302,  # Should redirect to login
+            follow_redirects=False
         )
         
-        if success and response and '/auth/' in response.url:
+        if success and response and '/auth/' in response.headers.get('Location', ''):
             print("✅ Dashboard correctly redirects unauthenticated users to login")
             return True
         else:
