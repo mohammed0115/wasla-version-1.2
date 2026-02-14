@@ -77,14 +77,15 @@ class WaslaDashboardTester:
             return False
             
         login_data = {
-            'username': email,
-            'password': password,
+            'action': 'login',
+            'login-email': email,
+            'login-password': password,
         }
         
         success, response = self.run_test(
             "User Login",
             "POST", 
-            "/accounts/login/",
+            "/auth/?tab=login",
             302,  # Expect redirect after successful login
             data=login_data
         )
