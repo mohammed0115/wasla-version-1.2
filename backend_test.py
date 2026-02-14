@@ -113,7 +113,7 @@ class WaslaDashboardTester:
             302  # Should redirect to login
         )
         
-        if success and response and '/accounts/login/' in response.url:
+        if success and response and '/auth/' in response.url:
             print("✅ Dashboard correctly redirects unauthenticated users to login")
             return True
         else:
