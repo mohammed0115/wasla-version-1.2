@@ -79,3 +79,7 @@ agenthub/agents/youtube/db
 # Mobile development
 android-sdk/ wasla_repo/.git/objects/pack/pack-dada9bae72be3b37318308422231e41b0ae97943.pack
 wasla_repo/.git/objects/pack/pack-dada9bae72be3b37318308422231e41b0ae97943.pack
+-e 
+# Environment files
+*.env
+*.env.*
