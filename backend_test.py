@@ -43,10 +43,13 @@ class WaslaAPITester:
             print("❌ Failed to get CSRF token")
             return False
             
+        # Get user email for login (username is email in this system)
+        user_email = "merchant@test.com"  # Based on our setup
+        
         # Try login form submission
         login_data = {
             'action': 'login',
-            'login-username': username,
+            'login-email': user_email,
             'login-password': password,
             'csrfmiddlewaretoken': self.csrf_token
         }
@@ -57,6 +60,8 @@ class WaslaAPITester:
                 data=login_data,
                 headers={'Referer': f"{self.base_url}/auth/"}
             )
+            
+            print(f"   Login response status: {response.status_code}")
             
             # Check if login was successful by trying to access a protected page
             test_response = self.session.get(f"{self.base_url}/dashboard/themes")
