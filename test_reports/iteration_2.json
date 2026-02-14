@@ -1,0 +1,66 @@
+{
+  "summary": "Completed testing of Wasla Django merchant dashboard. Backend authentication and dashboard pages work correctly via API. Frontend has login form UI issues but dashboard structure and RTL layout are properly implemented.",
+  
+  "backend_issues": {
+    "critical_bugs": [],
+    "flaky_endpoints": [
+      {
+        "endpoint": "/i18n/setlang/",
+        "issue": "Returns 403 Forbidden due to CSRF protection",
+        "impact": "Language switching via POST request fails",
+        "fix_priority": "MEDIUM"
+      }
+    ]
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Auth Login Form",
+        "issue": "Login tab switching not working properly - stays on registration form",
+        "selector": "a[href='?tab=login']",
+        "fix_priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Frontend login process",
+        "issue": "Login form submission not redirecting to dashboard despite correct credentials",
+        "affected_selectors": ["input[name='login-email']", "input[name='login-password']", "button[type='submit']"]
+      }
+    ],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Dashboard authentication redirect (unauthenticated users redirected to /auth/)",
+    "Backend API login with merchant@test.com credentials",
+    "Dashboard overview page loads with KPI cards and recent orders",
+    "Dashboard orders page loads correctly",
+    "Dashboard products page loads correctly", 
+    "Dashboard settlements page loads correctly",
+    "Dashboard AI tools page loads correctly",
+    "Dashboard store settings page loads correctly",
+    "Sidebar navigation links present with correct data-testid attributes",
+    "RTL layout working correctly (Arabic interface)",
+    "Language switcher button present in topbar",
+    "Dashboard layout structure (sidebar, topbar, main content) implemented correctly",
+    "Tenant context working properly",
+    "User info display in topbar",
+    "Consistent dashboard styling using dashboard.css classes"
+  ],
+
+  "test_report_links": ["/app/backend_test.py"],
+  
+  "success_percentage": {
+    "backend": "91% (10/11 tests passed)",
+    "frontend": "60% (login issues prevent full testing but structure is correct)"
+  },
+
+  "updated_files": ["/app/backend_test.py"],
+  
+  "action_item_for_main_agent": "Fix frontend login form tab switching functionality. The login tab click is not properly switching from registration to login form. Backend authentication works correctly via API but frontend form has UI issues. Also fix CSRF protection for language switching endpoint.",
+  
+  "should_call_test_agent_after_fix": "true",
+  "should_main_agent_test_itself": "false"
+}
