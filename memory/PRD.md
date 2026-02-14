@@ -1,73 +1,74 @@
-# Wasla E-commerce Platform - Phase 3 PRD
+# Wasla E-commerce Platform - Phase 0 Stabilization
 
-## Original Problem Statement
-Implement Phase 3 ONLY: "MERCHANT GROWTH & STORE SETUP AUTOMATION" for existing Django 5 e-commerce platform + Unified Merchant Dashboard UI following PROTOTYPE_SCENARIOS.pdf.
+## Status: COMPLETE ✅
 
-## Architecture
-- **Framework**: Django 5 with Clean Architecture (domain/application/infrastructure/interfaces)
-- **Frontend**: Django Templates + Bootstrap RTL
-- **API**: Django REST Framework
-- **Database**: SQLite (MySQL-compatible design)
-- **Multi-tenant**: Enforced via `store_id` on all queries
+## What Was Fixed
 
-## User Personas
-- **Merchant**: Creates stores, uploads products, manages orders, customizes branding
-- **Customer**: Browses products, places orders, tracks deliveries
+### 1. i18n/RTL ✅
+- `LocaleMiddleware` correctly placed after `SessionMiddleware` in settings
+- `base.html` sets `<html dir>` via `{% get_current_language_bidi as LANGUAGE_BIDI %}`
+- Language switcher uses Django `set_language` form (already implemented)
+- No mixed Arabic/English hardcoded strings in templates
 
-## What's Been Implemented (2026-02-14)
+### 2. CSS Conflicts ✅
+- Removed duplicate `:root` block (lines 567-576 in app.css)
+- Removed duplicate `.btn`, `.card`, `.brand` definitions
+- Removed entire "Global polish (Wasla v0.1)" block
+- Result: ONE consistent color system using original tokens:
+  - `--bg`, `--text`, `--muted`, `--line`, `--card`, `--soft`
+  - `--input`, `--primary`, `--danger`, `--shadow`, `--radius`
 
-### Phase 3 Features ✅
-1. **Bulk Product Upload**: CSV template, drag-drop UI, multi-image support, validation
-2. **Theme Selection + Branding**: 5 themes, color pickers, logo upload, font selection
-3. **Order Exports**: CSV export with filters, professional PDF invoices
-4. **Setup Wizard UX**: Progress indicators, better validation feedback
-
-### Unified Dashboard UI ✅
-- `base_dashboard.html` - Consistent shell with sidebar, topbar
-- Overview, Orders, Products, Settlements, AI Tools, Store Settings pages
-- RTL/LTR language switching via Django set_language
-
-### P1 Fix: Login Form Tab Switching ✅
-- Default to "login" tab when user redirected from protected page (has `next` param)
-- Tab links preserve `next` parameter for post-login redirect
-- Login success redirects to dashboard instead of home
-
-### P2 Fix: Real Analytics for KPI Cards ✅
-- Created `GetDashboardStatsUseCase` in `/app/wasla_repo/analytics/application/dashboard_stats.py`
-- Calculates real metrics:
-  - Total sales, orders, visitors from database
-  - Month-over-month change percentages
-  - Conversion rate calculation
-  - Average order value
-  - Pending orders count
-  - Products count
-  - Low stock alerts
-- Dashboard overview displays all metrics with proper formatting
-
-## Test Results
-- Backend: 100% (all endpoints working)
-- Frontend: 100% (comprehensive tests passed)
-- P1 Fixes: 100% (4/4 tests passed)
-- P2 Fixes: 100% (4/4 tests passed)
+### 3. Auth + Guards ✅
+- `LOGIN_URL = "/auth/"` already set in settings.py
+- All `/dashboard/*` views protected with:
+  - `@login_required` (decorator order: login_required FIRST)
+  - `@tenant_access_required` (decorator order: SECOND)
+- No ORM access before guards
+- `/dashboard/` route exists and redirects properly
 
 ## Files Modified
-- `/app/wasla_repo/accounts/views.py` - Default login tab with next param
-- `/app/wasla_repo/templates/accounts/auth.html` - Preserve next in tab links
-- `/app/wasla_repo/analytics/application/dashboard_stats.py` - Real KPI calculations
-- `/app/wasla_repo/tenants/interfaces/web/views.py` - Use GetDashboardStatsUseCase
-- `/app/wasla_repo/templates/dashboard/overview.html` - Enhanced KPI display
 
-## Manual QA Checklist
-- [x] Login redirect with next param shows login tab
-- [x] Login success redirects to dashboard
-- [x] Tab switching preserves next param
-- [x] KPI cards show real sales/orders data
-- [x] Change percentages calculated correctly
-- [x] Quick stats row displays all 4 metrics
-- [x] RTL/LTR layout working
-- [x] No errors on dashboard load
+### CSS
+- `/app/wasla_repo/static/css/app.css`
+  - Removed lines 566-646 (duplicate :root, .btn, .card, .brand, hero styles)
+  - Kept only original design tokens
 
-## Next Action Items
-- Add real-time order notifications (Django Channels)
-- Implement sales chart with actual data visualization
-- Add date range filter for KPI calculations
+### Views (added @login_required where missing)
+- `/app/wasla_repo/imports/interfaces/web/views.py`
+- `/app/wasla_repo/themes/interfaces/web/views.py`
+
+## Verification
+
+```bash
+# All pass:
+python -m compileall . -q  # No syntax errors
+python manage.py check     # Only warning: GlobalEmailSettings missing (expected)
+python manage.py runserver # Starts successfully
+
+# Routes work:
+curl http://localhost:8000/            # 200 (homepage)
+curl http://localhost:8000/dashboard/  # 302 -> /auth/
+curl http://localhost:8000/dashboard/import  # 302 -> /auth/
+curl http://localhost:8000/dashboard/themes  # 302 -> /auth/
+```
+
+## Design Tokens (preserved from original)
+```css
+:root {
+  --bg: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --line: #e5e7eb;
+  --card: #ffffff;
+  --soft: #f6f8fb;
+  --input: #eaf2ff;
+  --primary: #1F4FD8;
+  --danger: #ef4444;
+  --shadow: 0 10px 30px rgba(15,23,42,.08);
+  --radius: 14px;
+}
+```
+
+## Next Steps (Phase 1)
+- Build dashboard screens using unified layout
+- Implement remaining merchant features
