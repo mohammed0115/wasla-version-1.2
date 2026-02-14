@@ -11,191 +11,132 @@ Build a multi-tenant e-commerce SaaS platform for Saudi & Gulf merchants with:
 
 ## Repository
 - GitHub: `https://github.com/mohammed0115/wasla-version-1.2`
+- Source: User-uploaded `wasla-version-1.2-main.zip`
 - Architecture: Clean Architecture (domain / application / infrastructure / interfaces)
 - Stack: Django 5.x + DRF + SQLite (MySQL-ready)
 - Multi-tenant enforced
 
 ---
 
-## Sprint 1 - Production Hardening ✅ COMPLETED
+## Current Status ✅ DEPLOYED
 
-### Celery + Redis Integration
-- Proper Celery app with auto-discovery
-- Environment-based broker configuration
-- JSON serialization only
-- Exponential backoff retry logic
-- Task routing to specialized queues
-
-### Upload Security Hardening
-- File size limit (5MB max)
-- MIME type validation
-- Double-extension attack prevention
-- Path traversal prevention
-- Filename sanitization
-
-### Production Settings
-- Security headers enabled
-- CSRF/HTTPS settings
-- Structured JSON logging
-- Startup validation
-
-### Health & Observability
-- `/api/healthz` - Liveness probe
-- `/api/readyz` - Readiness probe
-- `/api/health` - Comprehensive status
+The original Django project has been properly deployed with:
+- All Django apps intact
+- Database with existing data (db.sqlite3)
+- Static files serving via `/api/static/`
+- Arabic RTL support working
+- Language switching functional
 
 ---
 
-## Phase 0 - Stabilization ✅ COMPLETED (Feb 14, 2026)
-
-### 1. i18n / RTL Fix ✅
-- `base.html` uses `LANGUAGE_BIDI` for `dir` attribute
-- LocaleMiddleware enabled and correctly ordered
-- Language switch uses Django `set_language` POST
-- All templates use `{% trans %}` tags
-- RTL CSS loads conditionally via `LANGUAGE_BIDI`
-- Arabic translations compiled and working
-
-**Verification:**
-- ✅ Language switching reloads page fully translated
-- ✅ No English inside Arabic mode
-- ✅ No Arabic inside English mode
-- ✅ Layout direction changes correctly
-
-### 2. CSS Conflict Resolution ✅
-- Consolidated CSS into single `static/css/app.css`
-- Single `:root` declaration
-- No duplicate class definitions
-- RTL/LTR overrides in separate files
-- Bootstrap RTL conflicts resolved
-
-**Verification:**
-- ✅ No duplicated CSS classes
-- ✅ No visual breaks in RTL
-- ✅ No override conflicts
-
-### 3. Authentication & Tenant Guards ✅
-- `LOGIN_URL` configured in settings
-- All dashboard views use `@login_required`
-- All tenant views use `@tenant_access_required`
-- Proper decorator ordering (login_required -> tenant_access_required)
-
-**Files Updated:**
-- `analytics/interfaces/web/views.py` - Added `@login_required`
-- `exports/interfaces/web/views.py` - Added `@login_required`
-- `imports/interfaces/web/views.py` - Added `@login_required`
-- `ai/interfaces/web/views.py` - Fixed decorator ordering
-- `themes/interfaces/web/views.py` - Added `@login_required`
-
-**Verification:**
-- ✅ Anonymous users cannot access dashboard
-- ✅ User cannot access another tenant
-- ✅ No security holes
-
----
-
-## Phase 3 - Feature Implementation ✅ COMPLETED (Feb 14, 2026)
-
-### 1. Merchant Dashboard ✅
-**File:** `tenants/interfaces/web/dashboard_views.py`
-**Template:** `templates/dashboard/merchant/home.html`
-
-**KPIs Implemented:**
-- Orders Today
-- Orders (Last 7 Days)
-- Revenue Today
-- Revenue (Last 30 Days)
-- Average Order Value
-- Paid vs Pending Orders
-
-**Widgets:**
-- Recent Orders table (last 10)
-- Top Products (last 7 days)
-- Quick Actions panel
-- Store Stats
-
-**Query Optimizations:**
-- Single aggregated queries for KPIs
-- `select_related` for recent orders
-- `values().annotate()` for top products
-- No N+1 queries
-
-### 2. Order Export System ✅
-**Template:** `templates/dashboard/exports/index.html`
-
-**Features:**
-- CSV export with date range filter
-- Status filtering
-- PDF invoice download (per order)
-- Arabic RTL support in PDF
-
-### 3. Theme Selection & Branding ✅
-Already implemented in previous sprint
-
-### 4. Bulk Import UI Improvements ✅
-**Template:** `templates/dashboard/import/index.html`
-
-**Features:**
-- Drag-drop style file upload
-- Visual file selection feedback
-- Progress indicator during upload
-- Recent import jobs list
-- Error display in job details
-
----
-
-## Key Files Structure
+## Project Structure
 ```
 /app/backend/
-├── config/
-│   ├── celery.py            # Celery configuration
-│   ├── settings.py          # Production settings
-│   └── urls.py              # URL routing with /api/ prefix
-├── static/css/
-│   ├── app.css              # Main consolidated CSS
-│   ├── rtl.css              # RTL overrides
-│   └── ltr.css              # LTR overrides
-├── locale/
-│   ├── ar/LC_MESSAGES/      # Arabic translations
-│   └── en/LC_MESSAGES/      # English translations
-├── tenants/interfaces/web/
-│   ├── dashboard_views.py   # Merchant dashboard
-│   └── decorators.py        # Auth guards
-├── templates/dashboard/
-│   ├── merchant/home.html   # Dashboard template
-│   ├── exports/index.html   # Export page
-│   └── import/index.html    # Import page
-└── security/
-    └── upload_validator.py  # Upload security
+├── accounts/          # User authentication
+├── ai/                # AI tools (visual search, description)
+├── analytics/         # Event tracking, experiments
+├── cart/              # Shopping cart
+├── catalog/           # Products, categories
+├── checkout/          # Checkout flow
+├── config/            # Django settings, URLs
+├── customers/         # Customer management
+├── domains/           # Custom domain support
+├── emails/            # Email service
+├── exports/           # CSV/PDF exports
+├── imports/           # Bulk product import
+├── locale/            # ar/en translations
+├── notifications/     # Push notifications
+├── observability/     # Logging, metrics
+├── orders/            # Order management
+├── payments/          # Payment processing
+├── plugins/           # Plugin system
+├── reviews/           # Product reviews
+├── security/          # Security middleware
+├── settlements/       # Merchant settlements
+├── shipping/          # Shipping providers
+├── sms/               # SMS service
+├── static/            # CSS, JS, images
+├── stores/            # Store management
+├── subscriptions/     # Subscription plans
+├── system/            # System config
+├── templates/         # HTML templates
+├── tenants/           # Multi-tenancy
+├── themes/            # Theme selection
+├── wallet/            # Wallet/credits
+├── webhooks/          # Webhook handling
+├── db.sqlite3         # SQLite database
+├── manage.py          # Django CLI
+└── requirements.txt   # Python dependencies
 ```
 
 ---
 
-## API Endpoints
+## Environment Configuration
 
-### Health
-- `GET /api/healthz` - Liveness
-- `GET /api/readyz` - Readiness
-- `GET /api/health` - Full status
+### .env
+```
+SECRET_KEY=django-insecure-change-me
+DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost,*.preview.emergentagent.com,*.preview.emergentcf.cloud
 
-### Dashboard
-- `GET /api/dashboard/` - Merchant dashboard
-- `GET /api/dashboard/home` - Merchant dashboard (alias)
+CSRF_TRUSTED_ORIGINS=https://*.preview.emergentagent.com,https://*.preview.emergentcf.cloud
 
-### Exports
-- `GET /api/dashboard/exports` - Export page
-- `GET /api/dashboard/exports/csv` - CSV download
-- `GET /api/dashboard/exports/invoice/<order_id>` - PDF invoice
+DEFAULT_FROM_EMAIL=Wasla <info@w-sala.com>
+SERVER_EMAIL=info@w-sala.com
 
-### Imports
-- `GET /api/dashboard/import` - Import page
-- `POST /api/dashboard/import/start` - Start import
-- `GET /api/dashboard/import/<job_id>` - Job details
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.hostinger.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=info@w-sala.com
+EMAIL_HOST_PASSWORD=YazYaz@2030
+```
+
+### Static Files
+- STATIC_URL: `/api/static/`
+- MEDIA_URL: `/api/media/`
+- Required for platform ingress routing
 
 ---
 
-## Environment Variables
-See `.env.production.example` for full list
+## URL Structure
+
+### Web Pages (via /api/ prefix for ingress)
+- `/api/` - Home page
+- `/api/auth/` - Authentication
+- `/api/dashboard/` - Merchant dashboard
+- `/api/dashboard/setup` - Store setup wizard
+- `/api/dashboard/import` - Bulk import
+- `/api/dashboard/exports` - Order exports
+- `/api/dashboard/themes` - Theme selection
+
+### REST APIs
+- `/api/v1/ai/` - AI endpoints
+- `/api/v1/analytics/` - Analytics
+- `/api/v1/cart/` - Cart
+- `/api/v1/checkout/` - Checkout
+- `/api/v1/orders/` - Orders
+
+---
+
+## Pending Tasks
+
+### Sprint 1 (Production Hardening)
+- [ ] Celery + Redis integration
+- [ ] Upload security hardening
+- [ ] Production settings
+- [ ] Health endpoints
+
+### Phase 0 (Stabilization)
+- [ ] i18n/RTL verification
+- [ ] CSS conflict resolution
+- [ ] Auth guards audit
+
+### Phase 3 (Features)
+- [ ] Merchant Dashboard KPIs
+- [ ] Order export improvements
+- [ ] Bulk import UI
+- [ ] Theme selection
 
 ---
 
@@ -205,28 +146,10 @@ See `.env.production.example` for full list
 
 ---
 
-## Next Steps (Backlog)
-
-### P1 - High Priority
-- [ ] Redis deployment for production Celery
-- [ ] MySQL migration
-- [ ] Payment integration (Stripe/PayPal)
-
-### P2 - Medium Priority
-- [ ] Product CRUD UI improvements
-- [ ] Customer management
-- [ ] Shipping providers integration
-
-### P3 - Low Priority
-- [ ] Prometheus metrics
-- [ ] Rate limiting middleware
-- [ ] Advanced analytics dashboard
-
----
-
 ## Changelog
 
 ### Feb 14, 2026
-- Sprint 1: Production hardening completed
-- Phase 0: Stabilization completed (i18n, CSS, auth guards)
-- Phase 3: Feature implementation completed (dashboard, exports, imports)
+- Restored original Django project from user-uploaded zip
+- Fixed static file serving with /api/ prefix
+- Updated ALLOWED_HOSTS for preview environment
+- Configured CSRF_TRUSTED_ORIGINS
