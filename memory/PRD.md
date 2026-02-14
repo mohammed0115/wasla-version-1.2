@@ -1,12 +1,13 @@
 # Wasla SaaS Platform - Product Requirements Document
 
 ## Original Problem Statement
-Transform the Wasla Django SaaS e-commerce platform from MVP into production-ready infrastructure with:
-1. Celery + Redis async task processing
-2. Upload security hardening
-3. Production settings hardening
-4. Health & observability endpoints
-5. Code quality enforcement
+Build a multi-tenant e-commerce SaaS platform for Saudi & Gulf merchants with:
+- Store creation and management
+- Product catalog with bulk import
+- Order management with exports
+- Theme selection and branding
+- AI tools (visual search, description generation)
+- Arabic RTL support
 
 ## Repository
 - GitHub: `https://github.com/mohammed0115/wasla-version-1.2`
@@ -14,147 +15,218 @@ Transform the Wasla Django SaaS e-commerce platform from MVP into production-rea
 - Stack: Django 5.x + DRF + SQLite (MySQL-ready)
 - Multi-tenant enforced
 
-## Sprint 1 Implementation Status
+---
 
-### ✅ COMPLETED
+## Sprint 1 - Production Hardening ✅ COMPLETED
 
-#### Part 1 - Celery + Redis (Production Grade)
-- [x] `config/celery.py` - Proper Celery app with auto-discovery
-- [x] `config/celery_config.py` - Centralized config module
-- [x] Environment-based broker & backend configuration
-- [x] JSON serialization only
-- [x] Timezone consistency with Django
-- [x] Task routing to specialized queues (imports, ai, analytics, emails)
-- [x] `ai/tasks.py` - AI indexing tasks with retries
-- [x] `imports/tasks.py` - Bulk import async tasks
-- [x] `analytics/tasks.py` - KPI aggregation tasks
-- [x] Exponential backoff retry logic (3 retries max)
-- [x] Task timeouts (soft: 5min, hard: 10min)
-- [x] Structured JSON task logging
-- [x] Eager mode fallback for dev without Redis
+### Celery + Redis Integration
+- Proper Celery app with auto-discovery
+- Environment-based broker configuration
+- JSON serialization only
+- Exponential backoff retry logic
+- Task routing to specialized queues
 
-#### Part 2 - Upload Security Hardening
-- [x] `security/upload_validator.py` - Comprehensive validation
-- [x] File size limit (5MB max)
-- [x] MIME type validation (python-magic + Pillow fallback)
-- [x] Extension whitelist enforcement
-- [x] Double-extension attack prevention
-- [x] Path traversal prevention
-- [x] Actual image content validation
-- [x] Filename sanitization with UUID
-- [x] Integrated into imports views
+### Upload Security Hardening
+- File size limit (5MB max)
+- MIME type validation
+- Double-extension attack prevention
+- Path traversal prevention
+- Filename sanitization
 
-#### Part 3 - Production Settings Hardening
-- [x] `config/settings.py` - Full production rewrite
-- [x] SECRET_KEY from environment
-- [x] DEBUG = False enforcement
-- [x] ALLOWED_HOSTS validation
-- [x] CSRF_TRUSTED_ORIGINS configured
-- [x] SecurityMiddleware enabled
-- [x] SECURE_CONTENT_TYPE_NOSNIFF = True
-- [x] SECURE_BROWSER_XSS_FILTER = True
-- [x] X_FRAME_OPTIONS = "DENY"
-- [x] SESSION_COOKIE_SECURE (env toggle)
-- [x] CSRF_COOKIE_SECURE (env toggle)
-- [x] Production validation at startup
-- [x] `.env.production.example` template
+### Production Settings
+- Security headers enabled
+- CSRF/HTTPS settings
+- Structured JSON logging
+- Startup validation
 
-#### Part 4 - Health & Observability
-- [x] `observability/views/health.py` - Production-grade checks
-- [x] `/healthz` - Liveness probe (fast)
-- [x] `/readyz` - Readiness probe (all deps)
-- [x] `/health` - Comprehensive status
-- [x] Database connectivity check
-- [x] Redis connectivity check
-- [x] Celery worker availability check
-- [x] Django cache check
-- [x] Structured JSON response with latencies
-- [x] Request timing middleware
-- [x] X-Request-Id header propagation
+### Health & Observability
+- `/api/healthz` - Liveness probe
+- `/api/readyz` - Readiness probe
+- `/api/health` - Comprehensive status
 
-#### Part 5 - Code Quality
-- [x] Clean separation of concerns maintained
-- [x] No business logic in views
-- [x] Dependency inversion via use cases
-- [x] Idempotent task design
-- [x] Proper error handling
+---
 
-#### Part 6 - Logging Configuration
-- [x] Structured JSON logging
-- [x] Separate handlers: app, celery, errors
-- [x] Rotating file handlers (10MB, 5 backups)
-- [x] Mail admins on errors (production)
-- [x] Request context enrichment
+## Phase 0 - Stabilization ✅ COMPLETED (Feb 14, 2026)
 
-### Platform Integration
-- [x] Supervisor config updated for Gunicorn
-- [x] URL routing supports `/api/` prefix
-- [x] ALLOWED_HOSTS includes preview domains
+### 1. i18n / RTL Fix ✅
+- `base.html` uses `LANGUAGE_BIDI` for `dir` attribute
+- LocaleMiddleware enabled and correctly ordered
+- Language switch uses Django `set_language` POST
+- All templates use `{% trans %}` tags
+- RTL CSS loads conditionally via `LANGUAGE_BIDI`
+- Arabic translations compiled and working
 
-## Key Files
+**Verification:**
+- ✅ Language switching reloads page fully translated
+- ✅ No English inside Arabic mode
+- ✅ No Arabic inside English mode
+- ✅ Layout direction changes correctly
+
+### 2. CSS Conflict Resolution ✅
+- Consolidated CSS into single `static/css/app.css`
+- Single `:root` declaration
+- No duplicate class definitions
+- RTL/LTR overrides in separate files
+- Bootstrap RTL conflicts resolved
+
+**Verification:**
+- ✅ No duplicated CSS classes
+- ✅ No visual breaks in RTL
+- ✅ No override conflicts
+
+### 3. Authentication & Tenant Guards ✅
+- `LOGIN_URL` configured in settings
+- All dashboard views use `@login_required`
+- All tenant views use `@tenant_access_required`
+- Proper decorator ordering (login_required -> tenant_access_required)
+
+**Files Updated:**
+- `analytics/interfaces/web/views.py` - Added `@login_required`
+- `exports/interfaces/web/views.py` - Added `@login_required`
+- `imports/interfaces/web/views.py` - Added `@login_required`
+- `ai/interfaces/web/views.py` - Fixed decorator ordering
+- `themes/interfaces/web/views.py` - Added `@login_required`
+
+**Verification:**
+- ✅ Anonymous users cannot access dashboard
+- ✅ User cannot access another tenant
+- ✅ No security holes
+
+---
+
+## Phase 3 - Feature Implementation ✅ COMPLETED (Feb 14, 2026)
+
+### 1. Merchant Dashboard ✅
+**File:** `tenants/interfaces/web/dashboard_views.py`
+**Template:** `templates/dashboard/merchant/home.html`
+
+**KPIs Implemented:**
+- Orders Today
+- Orders (Last 7 Days)
+- Revenue Today
+- Revenue (Last 30 Days)
+- Average Order Value
+- Paid vs Pending Orders
+
+**Widgets:**
+- Recent Orders table (last 10)
+- Top Products (last 7 days)
+- Quick Actions panel
+- Store Stats
+
+**Query Optimizations:**
+- Single aggregated queries for KPIs
+- `select_related` for recent orders
+- `values().annotate()` for top products
+- No N+1 queries
+
+### 2. Order Export System ✅
+**Template:** `templates/dashboard/exports/index.html`
+
+**Features:**
+- CSV export with date range filter
+- Status filtering
+- PDF invoice download (per order)
+- Arabic RTL support in PDF
+
+### 3. Theme Selection & Branding ✅
+Already implemented in previous sprint
+
+### 4. Bulk Import UI Improvements ✅
+**Template:** `templates/dashboard/import/index.html`
+
+**Features:**
+- Drag-drop style file upload
+- Visual file selection feedback
+- Progress indicator during upload
+- Recent import jobs list
+- Error display in job details
+
+---
+
+## Key Files Structure
 ```
 /app/backend/
 ├── config/
-│   ├── __init__.py       # Celery app loader
-│   ├── celery.py         # Celery configuration
-│   ├── celery_config.py  # Centralized settings
-│   ├── settings.py       # Production-hardened
-│   └── urls.py           # Health endpoints
-├── security/
-│   ├── upload_validator.py    # Upload security
-│   └── production_settings.py # Settings helpers
-├── ai/
-│   └── tasks.py          # AI async tasks
-├── imports/
-│   └── tasks.py          # Import async tasks
-├── analytics/
-│   ├── models.py         # DailyKPI model added
-│   └── tasks.py          # KPI async tasks
-├── observability/
-│   └── views/health.py   # Health endpoints
-├── .env                  # Development config
-├── .env.production.example # Production template
-└── requirements.txt      # Updated deps
+│   ├── celery.py            # Celery configuration
+│   ├── settings.py          # Production settings
+│   └── urls.py              # URL routing with /api/ prefix
+├── static/css/
+│   ├── app.css              # Main consolidated CSS
+│   ├── rtl.css              # RTL overrides
+│   └── ltr.css              # LTR overrides
+├── locale/
+│   ├── ar/LC_MESSAGES/      # Arabic translations
+│   └── en/LC_MESSAGES/      # English translations
+├── tenants/interfaces/web/
+│   ├── dashboard_views.py   # Merchant dashboard
+│   └── decorators.py        # Auth guards
+├── templates/dashboard/
+│   ├── merchant/home.html   # Dashboard template
+│   ├── exports/index.html   # Export page
+│   └── import/index.html    # Import page
+└── security/
+    └── upload_validator.py  # Upload security
 ```
 
-## Worker Commands
-```bash
-# Start Celery worker (production)
-celery -A config worker -l INFO -Q default,imports,ai,analytics,emails
-
-# Start Celery beat (scheduled tasks)
-celery -A config beat -l INFO
-
-# Run all workers with concurrency
-celery -A config worker -l INFO -c 4 -Q default,imports,ai,analytics,emails
-```
+---
 
 ## API Endpoints
-- `GET /api/healthz` - Liveness (always 200)
-- `GET /api/readyz` - Readiness (200 or 503)
-- `GET /api/health` - Full status JSON
+
+### Health
+- `GET /api/healthz` - Liveness
+- `GET /api/readyz` - Readiness
+- `GET /api/health` - Full status
+
+### Dashboard
+- `GET /api/dashboard/` - Merchant dashboard
+- `GET /api/dashboard/home` - Merchant dashboard (alias)
+
+### Exports
+- `GET /api/dashboard/exports` - Export page
+- `GET /api/dashboard/exports/csv` - CSV download
+- `GET /api/dashboard/exports/invoice/<order_id>` - PDF invoice
+
+### Imports
+- `GET /api/dashboard/import` - Import page
+- `POST /api/dashboard/import/start` - Start import
+- `GET /api/dashboard/import/<job_id>` - Job details
+
+---
 
 ## Environment Variables
 See `.env.production.example` for full list
 
-## Next Steps (P1)
-1. Phase 0 Stabilization
-   - CSS conflicts consolidation
-   - i18n/RTL fixes
-   - Auth guards verification
-2. Phase 3 Features
-   - Bulk product upload (UI)
-   - Theme selection & branding
-   - Order exports (CSV + PDF)
-   - Unified Merchant Dashboard
+---
 
-## Testing Status
-- Health endpoints: ✅ Working
-- Celery tasks: ✅ Eager mode working
-- Upload validation: ✅ Code complete
-- Django app: ✅ Running on Gunicorn
+## Testing Credentials
+- **Email:** `merchant@test.com`
+- **Password:** `password`
 
-## Notes
-- Redis not available in preview environment; tasks run in eager mode
-- MySQL requires mysqlclient system dependencies; using SQLite
-- Preview URL requires `/api/` prefix for all routes
+---
+
+## Next Steps (Backlog)
+
+### P1 - High Priority
+- [ ] Redis deployment for production Celery
+- [ ] MySQL migration
+- [ ] Payment integration (Stripe/PayPal)
+
+### P2 - Medium Priority
+- [ ] Product CRUD UI improvements
+- [ ] Customer management
+- [ ] Shipping providers integration
+
+### P3 - Low Priority
+- [ ] Prometheus metrics
+- [ ] Rate limiting middleware
+- [ ] Advanced analytics dashboard
+
+---
+
+## Changelog
+
+### Feb 14, 2026
+- Sprint 1: Production hardening completed
+- Phase 0: Stabilization completed (i18n, CSS, auth guards)
+- Phase 3: Feature implementation completed (dashboard, exports, imports)
