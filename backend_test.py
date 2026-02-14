@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 """
-Backend API Testing for Wasla Django E-commerce Platform - Phase 3
-Tests import, themes, branding, and export functionality
+Wasla Django Dashboard Backend API Testing
+Tests authentication, dashboard views, and tenant context functionality
 """
 
 import requests
 import sys
-import os
-import tempfile
-import csv
 from datetime import datetime
-from urllib.parse import urljoin
+import json
 
 class WaslaAPITester:
     def __init__(self, base_url="http://localhost:8000"):
